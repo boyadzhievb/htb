@@ -1,0 +1,193 @@
+#!/bin/bash
+tc="/sbin/tc"
+#tc="/bin/echo /sbin/tc"
+DEV_PEER="eth1"
+
+# root
+$tc qdisc del dev eth1 root
+$tc qdisc add dev eth1 root handle 1 htb r2q 10
+
+#$tc qdisc del dev eth2 root
+#$tc qdisc add dev eth2 root handle 1 htb r2q 10
+
+
+$tc qdisc del dev eth3 root
+$tc qdisc add dev eth3 root handle 1 htb r2q 10
+
+$tc qdisc del dev eth0 root
+$tc qdisc add dev eth0 root handle 1 htb r2q 10
+
+
+
+
+
+# parent 1:2000
+$tc class add dev eth1 parent 1: classid 1:1000 htb rate 70mbit
+$tc qdisc add dev eth1 parent 1:1000 handle 1000 sfq perturb 10
+$tc filter add dev eth1 parent 1:0 prio 5 protocol ip u32
+#40
+$tc class add dev eth1 parent 1: classid 1:4000 htb rate 70mbit
+$tc qdisc add dev eth1 parent 1:4000 handle 4000 sfq perturb 10
+$tc filter add dev eth1 parent 1:0 prio 5 protocol ip u32
+
+$tc class add dev eth3 parent 1: classid 1:1000 htb rate 70mbit
+$tc qdisc add dev eth3 parent 1:1000 handle 1000 sfq perturb 10
+$tc filter add dev eth3 parent 1:0 prio 5 protocol ip u32
+#40
+$tc class add dev eth3 parent 1: classid 1:4000 htb rate 70mbit
+$tc qdisc add dev eth3 parent 1:4000 handle 4000 sfq perturb 10
+$tc filter add dev eth3 parent 1:0 prio 5 protocol ip u32
+
+
+
+
+$tc class add dev eth0 parent 1: classid 1:2000 htb rate 50mbit
+$tc qdisc add dev eth0 parent 1:2000 handle 2000 sfq perturb 10
+$tc filter add dev eth0 parent 1:0 prio 5 protocol ip u32
+
+#$tc class add dev eth2 parent 1: classid 1:2000 htb rate 50mbit
+#$tc qdisc add dev eth2 parent 1:2000 handle 2000 sfq perturb 10
+#$tc filter add dev eth2 parent 1:0 prio 5 protocol ip u32
+
+
+
+# hashes
+$tc filter add dev eth3 parent 1:0 prio 5 handle 3: protocol ip u32 divisor 256 # vtora mreja :3
+$tc filter add dev eth3 protocol ip parent 1: prio 1 u32 ht 800:: match ip dst 192.168.3.0/24 link 3:
+
+$tc filter add dev eth1 parent 1:0 prio 5 handle 4: protocol ip u32 divisor 256 # treta mreja :4
+$tc filter add dev eth1 protocol ip parent 1: prio 1 u32 ht 800:: match ip dst 192.168.4.0/24 link 4:
+
+$tc filter add dev eth1 parent 1:0 prio 5 handle 5: protocol ip u32 divisor 256 # treta mreja :5
+$tc filter add dev eth1 protocol ip parent 1: prio 1 u32 ht 800:: match ip dst 192.168.5.0/24 link 5:
+
+$tc filter add dev eth1 parent 1:0 prio 5 handle 6: protocol ip u32 divisor 256 # treta mreja :6
+$tc filter add dev eth1 protocol ip parent 1: prio 1 u32 ht 800:: match ip dst 192.168.6.0/24 link 6:
+
+$tc filter add dev eth1 parent 1:0 prio 5 handle 7: protocol ip u32 divisor 256 # treta mreja :7
+$tc filter add dev eth1 protocol ip parent 1: prio 1 u32 ht 800:: match ip dst 192.168.7.0/24 link 7:
+
+
+
+#for i in {3..5}
+# do
+
+for y in {2..254}
+                do
+                hy=$(printf "%x\n" $y)
+                l=2001;
+                k=3001;
+                m=$((m+1))
+                z=$(($l+$m))
+                ya=$(($i-1))
+                ma=$(($ya*254))
+                mark=$(($y+$ma))
+                 x=$(($k+$m))
+#echo $z
+                $tc class add dev eth3 parent 1:1000 classid 1:${z} htb rate 200kbit ceil 20mbit
+                $tc qdisc add dev eth3 parent 1:${z} handle ${z} sfq perturb 10
+                $tc filter add dev eth3 protocol ip parent 1:0 prio 100 u32 ht 3: match ip tos 0x0 0xff match ip dst 192.168.3.${y} flowid 1:${z}
+
+                $tc class add dev eth3 parent 1:4000 classid 1:${x} htb rate 100kbit ceil 20mbit
+                $tc qdisc add dev eth3 parent 1:${x} handle ${x} sfq perturb 10
+                $tc filter add dev eth3 protocol ip parent 1:0 prio 100 u32 ht 3: match ip tos 0x2 0xff match ip dst 192.168.3.${y} flowid 1:${x}
+
+done
+
+for y in {2..254}
+                do
+                hy=$(printf "%x\n" $y)
+                l=2001;
+                k=4001;
+                m=$((m+1))
+                z=$(($l+$m))
+                ya=$(($i-1))
+                ma=$(($ya*254))
+                mark=$(($y+$ma))
+                 x=$(($k+$m))
+                x5=$(($x+254))
+                x6=$(($x+512))
+                x7=$(($x+1024))
+                z5=$(($z+254))
+                z6=$(($z+512))
+                z7=$(($z+1024))
+
+                $tc class add dev eth1 parent 1:1000 classid 1:${z} htb rate 200kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${z} handle ${z} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 4: match ip tos 0x0 0xff match ip dst 192.168.4.${y} flowid 1:${z}
+
+                $tc class add dev eth1 parent 1:4000 classid 1:${x} htb rate 100kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${x} handle ${x} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 4: match ip tos 0x2 0xff match ip dst 192.168.4.${y} flowid 1:${x}
+
+#/bin/echo -e "\n"
+
+                $tc class add dev eth1 parent 1:1000 classid 1:${z5} htb rate 200kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${z5} handle ${z5} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 5: match ip tos 0x0 0xff match ip dst 192.168.5.${y} flowid 1:${z5}
+
+                $tc class add dev eth1 parent 1:4000 classid 1:${x5} htb rate 100kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${x5} handle ${x5} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 5:  match ip tos 0x2 0xff match ip dst 192.168.5.${y} flowid 1:${x5}
+
+#/bin/echo -e "\n"
+
+
+                $tc class add dev eth1 parent 1:1000 classid 1:${z6} htb rate 200kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${z6} handle ${z6} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 6: match ip tos 0x0 0xff match ip dst 192.168.6.${y} flowid 1:${z6}
+
+                $tc class add dev eth1 parent 1:4000 classid 1:${x6} htb rate 100kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${x6} handle ${x6} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 6: match ip tos 0x2 0xff match ip dst 192.168.6.${y} flowid 1:${x6}
+
+
+#/bin/echo -e "\n"
+
+
+                $tc class add dev eth1 parent 1:1000 classid 1:${z7} htb rate 200kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${z7} handle ${z7} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 7: match ip tos 0x0 0xff match ip dst 192.168.7.${y} flowid 1:${z7}
+
+                $tc class add dev eth1 parent 1:4000 classid 1:${x7} htb rate 100kbit ceil 20mbit
+                $tc qdisc add dev eth1 parent 1:${x7} handle ${x7} sfq perturb 10
+                $tc filter add dev eth1 protocol ip parent 1:0 prio 100 u32 ht 7: match ip tos 0x2 0xff match ip dst 192.168.7.${y} flowid 1:${x7}
+
+
+#/bin/echo -e "\n"
+
+
+#echo ${x} ${x5} ${x6} ${z} ${z5} ${z6} ${y}
+
+done
+
+
+for i in {3..7}
+ do
+        for y in {2..254}
+                do
+                hy=$(printf "%x\n" $y)
+                l=2001;
+                k=3001;
+                m=$((m+1))
+                z=$(($l+$m))
+                ya=$(($i-1))
+                ma=$(($ya*254))
+                mark=$(($y+$ma))
+                 x=$(($k+$m))
+
+
+
+                $tc class add dev eth0 parent 1:2000 classid 1:${mark} htb rate 1mbit ceil 10mbit
+                $tc qdisc add dev eth0 parent 1:${mark} handle ${mark} sfq perturb 10
+                $tc filter add dev eth0 protocol ip parent 1:0 prio 100  handle ${mark} fw flowid 1:${mark}
+
+#                $tc class add dev eth2 parent 1:2000 classid 1:${mark} htb rate 1mbit ceil 10mbit
+#                $tc qdisc add dev eth2 parent 1:${mark} handle ${mark} sfq perturb 10
+#                $tc filter add dev eth2 protocol ip parent 1:0 prio 100  handle ${mark} fw flowid 1:${mark}
+
+
+
+#               echo i ${i} y ${y} z ${z} hy ${hy}  m ${m} ya ${ya} ma ${ma} mark ${mark}
+done
+done
